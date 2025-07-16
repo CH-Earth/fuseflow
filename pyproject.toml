@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fuseflow"
+version = "0.1.0"
+description = "A Python package for onfiguring FUSE hydrological models"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Kasra Keshavarz", email = "kasra.keshavarz1@ucalgary.ca"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.08",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "scipy>=1.15.0",
+    "numpy>=2.0.0",
+    "pandas>=2.0.0",
+    "timezonefinder>=6.5.9",
+    "pint>=0.20.0",
+    "pint-pandas>=0.7.1",
+    "pint-xarray>=0.5.0",
+    "geopandas>=0.13.2",
+    "xarray>=0.11",
+    "click>=8.2.1",
+    "pyet>=1.3.0",
+    "netCDF4>=1.6.0",
+    "distributed>=2023.1.0",
+    "dateutil>=3.9.0",
+    "cdo>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy",
+    "pre-commit",
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+[project.urls]
+Homepage = "https://github.com/kasra-keshavarz/fuseflow"
+Repository = "https://github.com/kasra-keshavarz/fuseflow"
+Issues = "https://github.com/kasra-keshavarz/fuseflow/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+# package data
+[tool.setuptools.package-data]
+your_package = ["templates/*.txt"]
