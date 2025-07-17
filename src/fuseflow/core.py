@@ -3,6 +3,7 @@
 from ._default_dicts import (
     default_forcing_units,
     default_forcing_vars,
+    default_models,
 )
 
 from .templating import render_settings
@@ -59,10 +60,11 @@ class FUSEWorkflow:
         forcing_files: Sequence[PathLike] | PathLike = None, # type: ignore
         forcing_units: Dict[str, str] = {},
         pet_method: str = "hamon",
-        model_number: Sequence[int] | int = [7, 37], # HBV-96 and GR4J as default models
+        model_number: Sequence[int] | int = default_models, # HBV-96 and GR4J as default models
         forcing_time_zone: str = None,
         model_time_zone: str = None,
         streamflow: xr.DataArray | PathLike = None, # type: ignore
+        elev_bands: PathLike | str = None, # type: ignore
         settings: Dict = {},
     ) -> 'FUSEWorkflow':
         """
@@ -171,6 +173,9 @@ class FUSEWorkflow:
         for key in mandatory_settings:
             if key not in self.settings:
                 raise ValueError(f"Missing mandatory setting: {key}")
+            
+        # assign elevation bands
+        self.elev_bands = elev_bands
 
         # assign an output object
         self.output_mat = None  # Placeholder for output matrix
@@ -260,6 +265,7 @@ class FUSEWorkflow:
         self.init_forcing_files() # defines self.df
         self.init_pet() # defines self.pet
         self.init_streamflow() # defines self.forcing['q_obs']
+        self.init_elev_bands() # defines self.elev_bands
 
         # print a message about the timezones
         print(f"Using forcing time zone: {self.forcing_time_zone}")
@@ -271,11 +277,7 @@ class FUSEWorkflow:
         """Save the workflow output to a specified path."""
         if not hasattr(self, 'forcing') or self.forcing is None:
             raise ValueError("No output matrix to save. Run the workflow first.")
-
-        # Create .mat file using the scipy.io.savemat function
-        # the dataframe must be a cobination of self.df and self.pet
-        self.init_model_file(base_path=save_path)
-
+        
         # check if the save_path exists, if not, create it
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
@@ -284,17 +286,27 @@ class FUSEWorkflow:
         os.makedirs(os.path.join(save_path, 'input'), exist_ok=True)
         os.makedirs(os.path.join(save_path, 'output'), exist_ok=True)
 
+        # Create .mat file using the scipy.io.savemat function
+        # the dataframe must be a cobination of self.df and self.pet
+        for model in self.model_number:
+            content = self.init_model_file(base_path=save_path, model_n=model)
+            # save the `fm_catch` content to a text file
+            with open(os.path.join(save_path, f'{self.name}_{model}.txt'), 'w') as f:
+                f.write(content)
+
         # save the forcing data to a NetCDF file
         self.forcing.to_netcdf(os.path.join(save_path, 'input', f'{self.name}_input.nc'))
+        # save the elevation bands to a NetCDF file
+        self.elev_bands.to_netcdf(os.path.join(save_path, 'input', f'{self.name}_elev_bands.nc'))
 
-        # save the `fm_catch` content to a text file
-        with open(os.path.join(save_path, 'fm_catch.txt'), 'w') as f:
-            f.write(self.fm_catch)
-
-        # copy the defaults files to the settings directory
+        # copy the defaults files and folders to the settings directory
         for f in glob.glob(os.path.join(setting_path, '*')):
+            # if a file, copy it to the settings directory
             if os.path.isfile(f):
                 shutil.copy2(f, os.path.join(save_path, 'settings'))
+            # if a directory, copy it to the settings directory
+            elif os.path.isdir(f):
+                shutil.copytree(f, os.path.join(save_path, 'settings', os.path.basename(f)))
 
         return f"Outputs saved to {save_path}"
 
@@ -515,9 +527,80 @@ class FUSEWorkflow:
 
         return
 
+    def init_elev_bands(self):
+        """Initialize elevation bands."""
+        # if extra information is provided in the input files
+        if self.elev_bands is not None:
+            # read the elevation bands from the provided path
+            if isinstance(self.elev_bands, (PathLike, str)):
+                elev_bands_file = pd.read_csv(self.elev_bands, index_col=0, header=0)
+                elev_bands_value = elev_bands_file.iloc[0, 0].values()[0]
+            else:
+                raise TypeError("elev_bands must be a PathLike or a string.")
+
+        else:
+            elev_bands_value = 1000
+
+        # create a numpy.array of the elevation bands
+        data = np.array([[[elev_bands_value]]])  # Shape: (elevation_band, latitude, longitude)
+
+        # default prec_frac and area_frac values
+        prec_frac = np.array([[[1.0]]])  # Shape: (elevation_band, latitude, longitude)
+        area_frac = np.array([[[1.0]]])  # Shape: (elevation_band, latitude, longitude)
+
+        ds = xr.Dataset(
+            {
+                'mean_elev': (['elevation_band', 'latitude', 'longitude'], data),
+                'area_frac': (['elevation_band', 'latitude', 'longitude'], area_frac),
+                'prec_frac': (['elevation_band', 'latitude', 'longitude'], prec_frac),
+            },
+            coords={
+                'latitude': self.forcing.latitude, # Assuming latitude is defined in the forcing data
+                'longitude': self.forcing.longitude, # Assuming longitude is defined in the forcing data
+            }
+        )
+
+        # Assign the elevation_band as a coordinate variable
+        ds = ds.assign_coords(elevation_band=np.arange(1, len(data) + 1))
+
+        # Add attributes
+        ds['mean_elev'].attrs = {
+            'long_name': 'Mid-point elevation of each elevation band',
+            'units': 'm asl'
+        }
+        ds['area_frac'].attrs = {
+            'long_name': 'Fraction of the catchment covered by each elevation band',
+            'units': 'dimensionless'
+        }
+        ds['prec_frac'].attrs = {
+            'long_name': 'Fraction of catchment precipitation that falls on each elevation band - same as area_frac',
+            'units': 'dimensionless'
+        }
+        ds['elevation_band'].attrs = {
+            'long_name': 'elevation_band',
+            'units': 'dimensionless'
+        }
+        ds['latitude'].attrs = {
+            'long_name': 'latitude',
+            'units': 'degreesN'
+        }
+        ds['longitude'].attrs = {
+            'long_name': 'longitude',
+            'units': 'degreesE'
+        }
+        ds['elevation_band'].attrs = {
+            'long_name': 'elevation_band',
+            'units': 'dimensionless'
+        }
+
+        self.elev_bands = ds
+
+        return
+
     def init_model_file(
         self,
         base_path: str | PathLike, # type: ignore
+        model_n: int,
     ) -> None:
         """Initialize the model file for the given model number."""
 
@@ -550,13 +633,14 @@ class FUSEWorkflow:
         }
 
         # create the content of the model file
-        self.fm_catch = render_settings(
+        fm_catch = render_settings(
             paths=paths_dict,
             dates=date_dict,
+            model=model_n
         )
 
         # return the rendered content
-        return
+        return fm_catch
     
     def _format_dates(
         self,

@@ -1,5 +1,6 @@
 {% set paths = paths %}
 {% set dates = dates %}
+{% set model = model %}
 FUSE_FILEMANAGER_V1.5
 ! *** paths
 {{ "'" }}{{ paths.settings }}{{ "'" }}     ! SETNGS_PATH
@@ -12,9 +13,9 @@ FUSE_FILEMANAGER_V1.5
 'input_info.txt '                ! FORCING INFO       = definition of the forcing file
 'fuse_zConstraints_snow.txt'     ! CONSTRAINTS        = definition of parameter constraints
 'fuse_zNumerix.txt'              ! MOD_NUMERIX        = definition of numerical solution technique
-'fuse_zDecisions_902.txt'        ! M_DECISIONS        = definition of model decisions
+'fuse_zDecisions_{{ model }}.txt'        ! M_DECISIONS        = definition of model decisions
 ! *** output files
-'902'                            ! FMODEL_ID          = string defining FUSE model, only used to name output files
+{{ "'" }}{{ model }}{{ "'" }}                            ! FMODEL_ID          = string defining FUSE model, only used to name output files
 'FALSE'                           ! Q_ONLY            = only write Q to output files (TRUE) or all variables (FALSE)
 ! *** dates
 {{ "'" }}{{ dates.start_date }}{{ "'" }}                      ! date_start_sim     = date start simulation

@@ -43,6 +43,7 @@ environment.globals['raise'] = raise_helper
 def render_settings(
     paths: Dict[str, PathLike], # type: ignore
     dates: Dict[str, str],
+    model: int = None,
     template_jinja_path: PathLike = TEMPLATE_SETTINGS
 ) -> str:
     """
@@ -66,6 +67,6 @@ def render_settings(
     template = environment.get_template(template_jinja_path)
 
     # create content
-    content = template.render(paths=paths, dates=dates)
+    content = template.render(paths=paths, dates=dates, model=model)
 
     return content
