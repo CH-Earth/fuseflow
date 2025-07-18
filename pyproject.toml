@@ -24,8 +24,8 @@ classifiers = [
 ]
 dependencies = [
     "scipy>=1.15.0",
-    "numpy>=2.0.0",
     "pandas>=2.0.0",
+    "numpy>=1.22.2",
     "timezonefinder>=6.5.9",
     "pint>=0.20.0",
     "pint-pandas>=0.7.1",
