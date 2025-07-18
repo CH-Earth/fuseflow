@@ -84,6 +84,10 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
+[tool.coverage.paths]
+meshflow = ["src/fuseflow", "*/fuseflow/src/fuseflow"]
+tests = ["tests", "*/fuseflow/tests"]
+
 # package data
 [tool.setuptools.package-data]
-your_package = ["templates/*.txt"]
+fuseflow = ["templates/*"]
