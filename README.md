@@ -9,6 +9,8 @@ A Python package for building FUSE hydrological models.
 pip install fuseflow
 ```
 
+After installation, the `fuseflow` command-line tool will be available in your environment.
+
 ### From Source
 ```bash
 git clone https://github.com/kasra-keshavarz/fuseflow.git
@@ -25,16 +27,48 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
+### Python API
+
 ```python
-from fuseflow import FuseFlow
+from fuseflow import FUSEWorkflow
 
-# Create an instance
-ff = FuseFlow()
+# Create a workflow instance
+workflow = FUSEWorkflow(
+    name="my_workflow",
+    cat="/path/to/catchment.geojson",
+    forcing_vars={"precip": "precipitation", "temp": "temperature"},
+    forcing_files="/path/to/forcing/files/",
+    forcing_units={"precip": "mm/day", "temp": "degC"},
+    settings={"start_date": "2000-01-01", "end_date": "2010-12-31"}
+)
 
-# Use the package
-result = ff.process()
+# Run the workflow
+result = workflow.run()
 print(result)
+
+# Save the results
+workflow.save("/path/to/output/")
 ```
+
+### Command Line Interface
+
+The package also provides a CLI for running workflows from JSON configuration files:
+
+```bash
+# Run a workflow from a configuration file
+fuseflow --json config.json --output-path ./results
+
+# Run with verbose output
+fuseflow --json config.json --output-path ./results --verbose
+
+# Show help
+fuseflow --help
+
+# Show version
+fuseflow --version
+```
+
+See [CLI_USAGE.md](CLI_USAGE.md) for detailed CLI documentation and examples.
 
 ## Features
 

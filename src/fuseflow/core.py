@@ -242,6 +242,17 @@ class FUSEWorkflow:
         return s
 
     @staticmethod
+    def _is_valid_integer(obj):
+        """
+        Check if a string can be converted to an integer
+        """
+        try:
+            int(obj)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    @staticmethod
     def _json_decoder(obj):
         """
         Decoding typical JSON strings returned into valid Python objects

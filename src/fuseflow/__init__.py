@@ -5,3 +5,6 @@ __author__ = "Kasra Keshavarz"
 __email__ = "kasra.keshavarz1@ucalgary.ca"
 
 from .core import FUSEWorkflow
+from .cli import cli
+
+__all__ = ['FUSEWorkflow', 'cli']
