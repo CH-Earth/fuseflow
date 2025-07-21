@@ -90,4 +90,4 @@ tests = ["tests", "*/fuseflow/tests"]
 
 # package data
 [tool.setuptools.package-data]
-fuseflow = ["templates/*"]
+fuseflow = ["templates/*", "default_settings/*", "default_settings/**/*"]
