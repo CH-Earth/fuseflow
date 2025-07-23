@@ -386,8 +386,8 @@ class FUSEWorkflow:
         _ureg = pint.UnitRegistry(force_ndarray_like=True)
 
         # read the forcing files using xarray and create a self.forcing
-        cdo_obj = cdo.Cdo()  # CDO object
-        ds = cdo_obj.mergetime(input=self.forcing_files, returnXArray=list(self.forcing_vars.values()))  # Mergeing
+        datasets = [xr.open_dataset(p) for p in sorted(self.forcing_files)]
+        ds = xr.concat(datasets, 'time')
 
         # adjust the model time zone
         if self.model_time_zone != self.forcing_time_zone:
