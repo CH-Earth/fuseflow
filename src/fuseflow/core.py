@@ -6,6 +6,8 @@ from ._default_dicts import (
     default_models,
 )
 
+from .utils import _calculate_polygon_areas
+
 from .templating import render_settings
 
 # built-in imports
@@ -31,6 +33,7 @@ import cdo
 import geopandas as gpd
 import pandas as pd
 import pint_xarray
+import pint_pandas
 import pint
 import pyet
 import numpy as np
@@ -270,6 +273,22 @@ class FUSEWorkflow:
             return {FUSEWorkflow._json_decoder(k): FUSEWorkflow._json_decoder(v) for k, v in obj.items()}
         return obj
 
+    @property
+    def area(self) -> float:
+        """
+        Calculate the area of the catchment in square meters.
+        If the catchment does not have a CRS, it will assume a default CRS of EPSG:4326.
+        """
+        area = _calculate_polygon_areas(
+            gdf=self.cat,
+            target_area_unit='m ** 2',  # default unit is square meters
+        )
+
+        area = area['area'].pint.magnitude.values[0]  # remove Pint units for simplicity
+
+        # calculate the area in square meters
+        return area
+    
     # class methods
     def run(self):
         """Run the workflow."""
@@ -530,10 +549,18 @@ class FUSEWorkflow:
             # Multiply your time-series variable by the ones to broadcast it
             self.forcing['q_obs'] = ds_obs * spatial_ones
 
+        # adjust units for the streamflow data
+        # streamflow is typically provided in m ** 3 / s, so we convert it to
+        # millimeter / day, given the area of the catchment
+        # The area is calculated in square meters, as a special property
+        # of the FUSEWorkflow class
+        self.forcing['q_obs'] = self.forcing['q_obs'] * 86400 * 1000 / self.area
+
         # adjust attributes for the streamflow data
         self.forcing['q_obs'].attrs = {
             'long_name': 'Mean observed daily discharge',
             'units': 'millimeter / day',
+            'source': 'Streamflow data provided by the user or generated as a placeholder.',
         }
 
         return
