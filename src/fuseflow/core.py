@@ -543,11 +543,15 @@ class FUSEWorkflow:
         else:
             # adding streamflow data to the forcing object
             ds_obs = self.streamflow.sel(time=slice(self.settings['start_date'], self.settings['end_date']))
+            full_time = pd.date_range(start=self.settings['start_date'], end=self.settings['end_date'], freq='D')
+            ds_complete = ds_obs.reindex({'time': full_time}, fill_value=0)
             # Create a spatial mask of ones with lat/lon dimensions
             spatial_ones = xr.ones_like(self.forcing.temp.isel(time=0))
 
             # Multiply your time-series variable by the ones to broadcast it
-            self.forcing['q_obs'] = ds_obs * spatial_ones
+            self.forcing['q_obs'] = ds_complete * spatial_ones
+            print(ds_complete)
+            print(ds_complete * spatial_ones)
 
         # adjust units for the streamflow data
         # streamflow is typically provided in m ** 3 / s, so we convert it to
