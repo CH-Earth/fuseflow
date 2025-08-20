@@ -455,6 +455,9 @@ class FUSEWorkflow:
             id_to_coords[id_value] = (centroid.y, centroid.x)  # (lat, lon)
 
         # Get the COMIDs from your self.forcing
+        # assure ds[id] is an integer
+        ds[id] = ds[id].astype(int)
+        # select id values
         ds_ids = ds[id].values
 
         # Create coordinate arrays
@@ -511,18 +514,11 @@ class FUSEWorkflow:
 
         pet = pyet.hamon(
             tmean=temp_df['temp'],
-            lat=lats,
+            lat=pyet.utils.deg_to_rad(lats), # latitude values should be in radians
         )
 
         # assign pet to the self.forcing
         self.forcing['pet'] = pet
-
-        # Set attributes for the new variable
-        self.forcing['pet'].attrs = {
-            'long_name': 'Potential Evapotranspiration',
-            'units': 'millimeter / day',
-            'source': 'Potential evapotranspiration estimated using Hamon, 1963, Trans. Am. Soc. Civ. Eng.'
-        }
 
         # fix dimension orders
         # Create a spatial mask of ones with lat/lon dimensions
@@ -533,6 +529,13 @@ class FUSEWorkflow:
 
         # Assuring the order of dimensions is time, latitude, longitude
         self.forcing['pet'] = self.forcing['pet'].transpose('time', 'latitude', 'longitude')
+
+        # Set attributes for the new variable
+        self.forcing['pet'].attrs = {
+            'long_name': 'Potential Evapotranspiration',
+            'units': 'millimeter / day',
+            'source': 'Potential evapotranspiration estimated using Hamon, 1963, Trans. Am. Soc. Civ. Eng.'
+        }
 
         return
 
@@ -550,8 +553,6 @@ class FUSEWorkflow:
 
             # Multiply your time-series variable by the ones to broadcast it
             self.forcing['q_obs'] = ds_complete * spatial_ones
-            print(ds_complete)
-            print(ds_complete * spatial_ones)
 
         # adjust units for the streamflow data
         # streamflow is typically provided in m ** 3 / s, so we convert it to
